@@ -1,0 +1,906 @@
+<!doctype html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Step 12 Diary",
+  "schemaVersion": 1,
+  "description": "Step Twelve daily diary with built-in telemetry. Each day you log: clean/slip status, mood/energy/craving scales, service acts (tagged + free text), a 0-3 score for each of the 12 spiritual principles, what you fell short on, where you grew, who you noticed struggling, tomorrow's intention. Telemetry view shows a 70-day calendar heatmap, mood/energy/craving line chart, principles bar chart (your blind-spot map), and service-acts-per-day. AI patterns view runs five different cross-entry analyses: weekly review, monthly patterns, principles you are avoiding, what tracks with mood, and a suggested Step-12 action for tomorrow. Export to .txt (sponsor copy), .csv (telemetry for Excel/Sheets), and .json (full backup with import)."
+}
+</script>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Step Twelve Diary</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+:root { color-scheme: light;
+  --bg:#f6f3ee; --panel:#fff; --ink:#2a2622; --muted:#7a6f60; --soft:#e3dccd;
+  --accent:#3a5a4a; --accent-2:#4a7a64; --accent-soft:#dfeae2;
+  --warn:#a13e2a; --warm:#fffaf0; --gold:#c8a85a;
+}
+* { box-sizing: border-box; }
+html, body { margin:0; padding:0; }
+body {
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg); color: var(--ink); line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Layout */
+.app { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+@media (max-width: 760px) { .app { grid-template-columns: 1fr; } }
+.sidebar { background: #ece5d5; border-right: 1px solid var(--soft); padding: 18px 14px; }
+.brand { font-family: Georgia, serif; font-size: 17px; font-weight: 600; padding: 4px 6px 14px; border-bottom: 1px solid var(--soft); margin-bottom: 10px; }
+.brand .small { display: block; font-size: 11px; letter-spacing: 0.14em; color: var(--muted); text-transform: uppercase; font-weight: 500; font-family: -apple-system, sans-serif; }
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav button {
+  text-align: left; background: transparent; border: 0; padding: 9px 11px; border-radius: 6px;
+  font: inherit; font-size: 13.5px; color: var(--ink); cursor: pointer;
+}
+.nav button:hover { background: #e1d8c4; }
+.nav button.active { background: var(--accent); color: #fff; }
+.nav .label { font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); padding: 14px 10px 4px; }
+
+.main { padding: 22px 28px 80px; max-width: 980px; }
+@media (max-width: 760px) { .main { padding: 16px; } }
+
+h1.page-title { font-family: Georgia, serif; font-size: 26px; margin: 0 0 4px; }
+.page-sub { color: var(--muted); font-size: 13.5px; margin-bottom: 18px; }
+
+.card {
+  background: var(--panel); border: 1px solid var(--soft); border-radius: 12px;
+  padding: 18px 20px; margin-bottom: 16px;
+  box-shadow: 0 1px 2px rgba(60,50,30,0.03);
+}
+.card h2 { font-family: Georgia, serif; font-size: 17px; margin: 0 0 6px; }
+.card .lede { color: var(--muted); font-size: 13.5px; margin: 0 0 12px; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+@media (max-width: 760px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 480px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+
+.stat { background: var(--warm); border: 1px solid #e7dec7; border-radius: 10px; padding: 13px 15px; }
+.stat .label { font-size: 11px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; }
+.stat .value { font-family: Georgia, serif; font-size: 24px; margin-top: 4px; }
+.stat .note { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+.btn { font: inherit; font-size: 13px; background: #fff; color: var(--ink); border: 1px solid #cfc6b6; border-radius: 6px; padding: 7px 12px; cursor: pointer; transition: background .12s, border-color .12s; }
+.btn:hover { background: #efeadf; border-color: #b9ad97; }
+.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn.primary:hover { background: #2e483b; }
+.btn.warn { color: var(--warn); border-color: #d8b8af; }
+.btn.warn:hover { background: #faecea; }
+.btn:disabled { opacity: 0.6; cursor: progress; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.q { margin-top: 12px; }
+.q label { display: block; font-size: 14px; margin-bottom: 4px; }
+.q textarea, .q input[type="text"] {
+  width: 100%; resize: vertical; font: inherit; font-size: 14px; line-height: 1.5;
+  background: #fdfbf6; border: 1px solid #d9d2c2; border-radius: 7px;
+  padding: 9px 11px; color: var(--ink);
+}
+.q textarea { min-height: 70px; }
+.q textarea:focus, .q input:focus { outline: 2px solid #b8d3c6; border-color: var(--accent-2); background: #fff; }
+
+.scale { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.scale button { font: inherit; font-size: 13px; min-width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--soft); background: #fff; cursor: pointer; padding: 0 8px; }
+.scale button.selected { background: var(--accent); color: #fff; border-color: var(--accent); }
+.scale.craving button.selected { background: var(--warn); border-color: var(--warn); }
+
+.toggle { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.toggle button { font: inherit; font-size: 13px; padding: 6px 11px; border-radius: 99px; border: 1px solid var(--soft); background: #fff; cursor: pointer; }
+.toggle button.selected { background: var(--accent-soft); border-color: var(--accent-2); color: var(--accent); }
+
+.principle-row {
+  display: grid; grid-template-columns: 1fr auto; gap: 10px;
+  padding: 8px 10px; border-radius: 8px; align-items: center; margin-bottom: 4px;
+  background: #fdfbf6; border: 1px solid var(--soft);
+}
+.principle-row .pname { font-size: 13.5px; }
+.principle-row .pname .pdesc { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.principle-row .pscale { display: inline-flex; gap: 3px; }
+.principle-row .pscale button {
+  font: inherit; font-size: 12px; width: 28px; height: 28px;
+  border-radius: 6px; border: 1px solid var(--soft); background: #fff; cursor: pointer; padding: 0;
+}
+.principle-row .pscale button.selected { background: var(--accent); color: #fff; border-color: var(--accent); }
+.principle-row .pscale button[data-v="0"].selected { background: #c2c2c2; border-color: #b0b0b0; }
+
+.tag-cloud { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.tag-cloud button { font: inherit; font-size: 12.5px; padding: 4px 10px; border-radius: 99px; border: 1px solid var(--soft); background: #fff; cursor: pointer; }
+.tag-cloud button.selected { background: var(--accent-soft); border-color: var(--accent-2); color: var(--accent); }
+
+.heatmap { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; max-width: 460px; }
+.heatmap .cell { aspect-ratio: 1 / 1; border-radius: 4px; background: #eee5d4; position: relative; cursor: pointer; }
+.heatmap .cell.l1 { background: #d6e3d9; }
+.heatmap .cell.l2 { background: #a6c4ad; }
+.heatmap .cell.l3 { background: #6a9c79; }
+.heatmap .cell.l4 { background: #3a7a55; }
+.heatmap .cell.relapse { background: #c98a7a; }
+.heatmap .cell:hover::after {
+  content: attr(data-tip); position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%);
+  background: #2a2622; color: #fff; padding: 4px 7px; border-radius: 4px; font-size: 11.5px; white-space: nowrap; z-index: 10;
+}
+.heatmap-legend { font-size: 11.5px; color: var(--muted); margin-top: 8px; display: flex; gap: 10px; align-items: center; }
+.heatmap-legend .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; vertical-align: middle; margin-right: 4px; }
+
+.ai-output {
+  background: #f4efe2; border: 1px solid #e0d3a8;
+  border-left: 3px solid var(--accent-2);
+  padding: 14px 16px; border-radius: 8px;
+  font-size: 14px; white-space: pre-wrap;
+  margin-top: 12px;
+}
+.ai-output.empty { background: transparent; border: 1px dashed #d2c8b1; color: var(--muted); text-align: center; font-style: italic; }
+.ai-output .stamp { display: block; font-size: 11px; color: var(--muted); margin-bottom: 8px; letter-spacing: 0.06em; text-transform: uppercase; }
+
+.entry-card { padding: 12px 14px; background: #fdfbf6; border: 1px solid var(--soft); border-radius: 8px; margin-bottom: 8px; }
+.entry-card .head { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; color: var(--muted); }
+.entry-card .body { font-size: 13.5px; margin-top: 4px; }
+.entry-card .principles-mini { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 6px; }
+.entry-card .principles-mini .chip { font-size: 11px; padding: 2px 7px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); }
+
+.savedtag { font-size: 12px; color: var(--accent-2); margin-left: 6px; }
+.savedtag.saving { color: var(--muted); }
+.savedtag.fail { color: var(--warn); }
+
+.hidden { display: none !important; }
+
+.search-input { width: 100%; }
+.banner-quote { font-family: Georgia, serif; font-style: italic; font-size: 15px; color: #4f463b; background: var(--warm); padding: 14px 18px; border-radius: 10px; border: 1px solid #e7dec7; margin-bottom: 14px; }
+
+.toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="small">Step Twelve</span>
+      Daily Diary
+    </div>
+    <div class="nav" id="nav"></div>
+  </aside>
+  <main class="main" id="main"></main>
+</div>
+
+<script>
+/* ===================== PRINCIPLES =====================
+   The 12 spiritual principles paired with each step — common framing across
+   several recovery traditions. Brief descriptions are my own plain-English. */
+const PRINCIPLES = [
+  { key:"honesty",      name:"Honesty",        desc:"Telling the truth about myself, even when it costs me." },
+  { key:"hope",         name:"Hope",           desc:"Believing that change is possible — for me, today." },
+  { key:"faith",        name:"Faith",          desc:"Acting on something I cannot see proof of yet." },
+  { key:"courage",      name:"Courage",        desc:"Doing the next right thing while afraid." },
+  { key:"integrity",    name:"Integrity",      desc:"Saying it and meaning it — and following through." },
+  { key:"willingness",  name:"Willingness",    desc:"Open to changing my mind, my plan, or my position." },
+  { key:"humility",     name:"Humility",       desc:"Right-sized — not bigger, not smaller than I am." },
+  { key:"brotherly",    name:"Brotherly love", desc:"Treating people as people, not obstacles or audiences." },
+  { key:"discipline",   name:"Discipline",     desc:"Doing the thing on a day I don't feel like it." },
+  { key:"perseverance", name:"Perseverance",   desc:"Continuing after setback, without making it a drama." },
+  { key:"awareness",    name:"Awareness",      desc:"Noticing what is actually happening, inside and out." },
+  { key:"service",      name:"Service",        desc:"Showing up for someone else without expecting a return." }
+];
+
+/* ===================== SERVICE TAGS ===================== */
+const SERVICE_TAGS = [
+  "Attended a meeting","Shared in a meeting","Called/texted my sponsor",
+  "Called/texted a sponsee","Reached out to someone struggling","Helped at a meeting",
+  "Listened to a newcomer","Did literature reading","Prayer/meditation",
+  "Made amends","Wrote inventory","None today"
+];
+
+/* ===================== STORAGE ===================== */
+const STORAGE_KEY = "step_12_diary_v1";
+
+function defaultState() {
+  return {
+    entries: [],           // array of daily entries, sorted by date desc on read
+    ai: [],                // array of AI analyses { kind, content, at }
+    meta: { createdAt: new Date().toISOString() }
+  };
+}
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    const p = JSON.parse(raw);
+    if (!p.entries) p.entries = [];
+    if (!p.ai) p.ai = [];
+    if (!p.meta) p.meta = { createdAt: new Date().toISOString() };
+    return p;
+  } catch (e) { return defaultState(); }
+}
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); return true; }
+  catch (e) { return false; }
+}
+let state = loadState();
+let currentView = "today";
+
+/* ===================== UTIL ===================== */
+function escapeHTML(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function todayKey() { return new Date().toISOString().slice(0,10); }
+function entryForDate(d) { return state.entries.find(e => e.date.slice(0,10) === d); }
+function pickQuote() {
+  const QS = [
+    "Service is the rent we pay for the room we live in.",
+    "You cannot give away what you have not been given — and you keep what you give.",
+    "The Twelfth Step is the first eleven, lived out loud.",
+    "If you want to keep it, give it away. If you want to lose it, hoard it.",
+    "Show up. Be useful. Go home.",
+    "Practice these principles in all my affairs — not just the ones I feel like."
+  ];
+  return QS[new Date().getDate() % QS.length];
+}
+
+/* ===================== NAV ===================== */
+function renderNav() {
+  const nav = document.getElementById("nav");
+  const items = [
+    ["today", "Today's entry"],
+    ["telemetry", "Telemetry"],
+    ["patterns", "Patterns (AI)"],
+    ["history", "History"],
+    ["settings", "Export / data"]
+  ];
+  nav.innerHTML = items.map(([k, label]) =>
+    '<button data-view="' + k + '"' + (k === currentView ? ' class="active"' : '') + '>' + escapeHTML(label) + '</button>'
+  ).join("");
+  nav.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { currentView = b.dataset.view; render(); }));
+}
+
+/* ===================== RENDER ===================== */
+function render() {
+  renderNav();
+  const main = document.getElementById("main");
+  if (currentView === "today") return renderToday(main);
+  if (currentView === "telemetry") return renderTelemetry(main);
+  if (currentView === "patterns") return renderPatterns(main);
+  if (currentView === "history") return renderHistory(main);
+  if (currentView === "settings") return renderSettings(main);
+}
+
+/* ===================== TODAY ===================== */
+function renderToday(main) {
+  const d = todayKey();
+  let entry = entryForDate(d);
+  const isNew = !entry;
+  if (!entry) entry = { date: new Date().toISOString(), sober: true, relapse_note: "", mood: null, energy: null, craving: null,
+                        service_tags: [], service_text: "", principles: {}, fell_short: "", grew: "", saw_struggling: "", tomorrow: "", notes: "" };
+
+  let html = '' +
+    '<h1 class="page-title">Today &mdash; ' + new Date().toLocaleDateString() + '</h1>' +
+    '<div class="page-sub">' + (isNew ? "No entry yet for today." : "You have an entry for today. Updating will overwrite it.") + ' <span class="savedtag" id="savedtag"></span></div>' +
+    '<div class="banner-quote">' + escapeHTML(pickQuote()) + '</div>' +
+
+    '<div class="card">' +
+      '<h2>Check-in</h2>' +
+      '<div class="grid-3">' +
+        '<div><label>Stayed clean today?</label><div class="toggle" id="t-sober">' +
+          '<button data-v="1"' + (entry.sober ? ' class="selected"' : '') + '>Yes</button>' +
+          '<button data-v="0"' + (!entry.sober ? ' class="selected"' : '') + '>No</button>' +
+        '</div></div>' +
+        '<div><label>Mood (1&ndash;5)</label><div class="scale" id="s-mood">' + scaleHTML(1,5,entry.mood) + '</div></div>' +
+        '<div><label>Energy (1&ndash;5)</label><div class="scale" id="s-energy">' + scaleHTML(1,5,entry.energy) + '</div></div>' +
+      '</div>' +
+      '<div class="q"><label>Craving (0&ndash;10)</label><div class="scale craving" id="s-craving">' + scaleHTML(0,10,entry.craving) + '</div></div>' +
+      '<div class="q hidden" id="relapse-block">' +
+        '<label>If you used or slipped, what happened? (For your own record. No judgement.)</label>' +
+        '<textarea id="i-relapse">' + escapeHTML(entry.relapse_note || "") + '</textarea>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="card">' +
+      '<h2>Service today &mdash; carrying the message</h2>' +
+      '<p class="lede">Anything I did, however small, that counted as Step Twelve in action.</p>' +
+      '<div class="tag-cloud" id="t-service">' +
+        SERVICE_TAGS.map(t => '<button data-v="' + escapeHTML(t) + '"' + (entry.service_tags.includes(t) ? ' class="selected"' : '') + '>' + escapeHTML(t) + '</button>').join("") +
+      '</div>' +
+      '<div class="q"><label>In your own words &mdash; what was the service today? Who did I show up for, and how?</label>' +
+        '<textarea id="i-service">' + escapeHTML(entry.service_text || "") + '</textarea></div>' +
+    '</div>' +
+
+    '<div class="card">' +
+      '<h2>Practising the principles</h2>' +
+      '<p class="lede">Score each one for today. 0 = did not show up, 1 = tried, 2 = lived it, 3 = strongly. Skip what does not apply.</p>' +
+      '<div id="principle-list">' +
+        PRINCIPLES.map(p => '' +
+          '<div class="principle-row">' +
+            '<div class="pname">' + escapeHTML(p.name) + '<span class="pdesc">' + escapeHTML(p.desc) + '</span></div>' +
+            '<div class="pscale" data-key="' + p.key + '">' +
+              [0,1,2,3].map(v => '<button data-v="' + v + '"' + ((entry.principles[p.key] === v) ? ' class="selected"' : '') + '>' + v + '</button>').join("") +
+            '</div>' +
+          '</div>'
+        ).join("") +
+      '</div>' +
+    '</div>' +
+
+    '<div class="card">' +
+      '<h2>Reflection</h2>' +
+      '<div class="q"><label>Where I fell short today (where a principle slipped, what I missed, what I want to do differently):</label>' +
+        '<textarea id="i-fell">' + escapeHTML(entry.fell_short || "") + '</textarea></div>' +
+      '<div class="q"><label>One way I am different from a year ago &mdash; visible today:</label>' +
+        '<textarea id="i-grew">' + escapeHTML(entry.grew || "") + '</textarea></div>' +
+      '<div class="q"><label>Anyone I noticed who is struggling (name or initial, what I saw, what I might do):</label>' +
+        '<textarea id="i-saw">' + escapeHTML(entry.saw_struggling || "") + '</textarea></div>' +
+      '<div class="q"><label>Tomorrow&rsquo;s one intention:</label>' +
+        '<input type="text" id="i-tomorrow" value="' + escapeHTML(entry.tomorrow || "") + '" /></div>' +
+      '<div class="q"><label>Anything else (free notes):</label>' +
+        '<textarea id="i-notes">' + escapeHTML(entry.notes || "") + '</textarea></div>' +
+    '</div>' +
+
+    '<div class="btn-row">' +
+      '<button class="btn primary" id="btn-save">Save today\'s entry</button>' +
+      '<button class="btn" id="btn-ai-today">Ask AI: how does today look?</button>' +
+      (entry.date && entryForDate(d) ? '<button class="btn warn" id="btn-delete">Delete today\'s entry</button>' : '') +
+    '</div>' +
+    '<div id="ai-today-out" class="ai-output empty">Save an entry, then ask the AI for one observation.</div>';
+
+  main.innerHTML = html;
+
+  // working entry values
+  let sober = entry.sober;
+  let mood = entry.mood;
+  let energy = entry.energy;
+  let craving = entry.craving;
+  let serviceTags = [...entry.service_tags];
+  let principles = { ...entry.principles };
+
+  // sober toggle
+  document.querySelectorAll("#t-sober button").forEach(b => {
+    b.addEventListener("click", () => {
+      document.querySelectorAll("#t-sober button").forEach(x => x.classList.remove("selected"));
+      b.classList.add("selected");
+      sober = b.dataset.v === "1";
+      document.getElementById("relapse-block").classList.toggle("hidden", sober);
+    });
+  });
+  if (!sober) document.getElementById("relapse-block").classList.remove("hidden");
+
+  // scales
+  bindScale("s-mood", v => mood = v);
+  bindScale("s-energy", v => energy = v);
+  bindScale("s-craving", v => craving = v);
+
+  // service tags
+  document.querySelectorAll("#t-service button").forEach(b => {
+    b.addEventListener("click", () => {
+      const t = b.dataset.v;
+      if (serviceTags.includes(t)) { serviceTags = serviceTags.filter(x => x !== t); b.classList.remove("selected"); }
+      else { serviceTags.push(t); b.classList.add("selected"); }
+    });
+  });
+
+  // principles
+  document.querySelectorAll(".pscale").forEach(group => {
+    const key = group.dataset.key;
+    group.querySelectorAll("button").forEach(b => {
+      b.addEventListener("click", () => {
+        group.querySelectorAll("button").forEach(x => x.classList.remove("selected"));
+        b.classList.add("selected");
+        principles[key] = parseInt(b.dataset.v, 10);
+      });
+    });
+  });
+
+  // save
+  document.getElementById("btn-save").addEventListener("click", () => {
+    const newEntry = {
+      date: new Date().toISOString(),
+      sober, mood, energy, craving,
+      relapse_note: document.getElementById("i-relapse").value.trim(),
+      service_tags: serviceTags,
+      service_text: document.getElementById("i-service").value.trim(),
+      principles,
+      fell_short: document.getElementById("i-fell").value.trim(),
+      grew: document.getElementById("i-grew").value.trim(),
+      saw_struggling: document.getElementById("i-saw").value.trim(),
+      tomorrow: document.getElementById("i-tomorrow").value.trim(),
+      notes: document.getElementById("i-notes").value.trim()
+    };
+    // remove any existing entry for today, then add
+    state.entries = state.entries.filter(e => e.date.slice(0,10) !== d);
+    state.entries.push(newEntry);
+    state.entries.sort((a,b) => b.date.localeCompare(a.date));
+    saveState();
+    setSavedTag("saved");
+    render();
+  });
+
+  // delete
+  const del = document.getElementById("btn-delete");
+  if (del) del.addEventListener("click", () => {
+    if (!confirm("Delete today's entry?")) return;
+    state.entries = state.entries.filter(e => e.date.slice(0,10) !== d);
+    saveState();
+    render();
+  });
+
+  // ai today
+  document.getElementById("btn-ai-today").addEventListener("click", () => aiOnToday(d));
+}
+
+function scaleHTML(min, max, selected) {
+  let h = "";
+  for (let i = min; i <= max; i++) h += '<button data-v="' + i + '"' + (selected === i ? ' class="selected"' : '') + '>' + i + '</button>';
+  return h;
+}
+function bindScale(id, onPick) {
+  const el = document.getElementById(id); if (!el) return;
+  el.querySelectorAll("button").forEach(b => {
+    b.addEventListener("click", () => {
+      el.querySelectorAll("button").forEach(x => x.classList.remove("selected"));
+      b.classList.add("selected");
+      onPick(parseInt(b.dataset.v, 10));
+    });
+  });
+}
+function setSavedTag(state) {
+  const el = document.getElementById("savedtag");
+  if (!el) return;
+  el.className = "savedtag " + (state === "saving" ? "saving" : state === "fail" ? "fail" : "");
+  el.textContent = state === "saving" ? "Saving…" : state === "fail" ? "Save failed" : "Saved";
+}
+
+async function aiOnToday(d) {
+  const e = entryForDate(d);
+  if (!e) { alert("Save the entry first."); return; }
+  const out = document.getElementById("ai-today-out");
+  out.classList.remove("empty");
+  out.textContent = "Looking at today…";
+  const last7 = state.entries.filter(x => x.date < e.date).slice(0, 7);
+  const instr = "You are a calm, plain-spoken recovery thinking partner. Look at today's entry and the last 7 entries. " +
+    "In under 140 words: (a) name one specific pattern you see between today and the recent past, " +
+    "(b) flag any principle that is being neglected, (c) suggest ONE small Step-Twelve action for tomorrow. " +
+    "Speak like a person. Avoid 'journey', 'self-care', 'remember that', and other wellness-app phrases.";
+  const res = await callClaude(instr, { today: e, recent: last7 });
+  out.textContent = res;
+}
+
+/* ===================== TELEMETRY ===================== */
+function renderTelemetry(main) {
+  const recent = state.entries.slice(0, 30);
+  const sober30 = recent.filter(e => e.sober).length;
+  const totalService = state.entries.reduce((a, e) => a + (e.service_tags ? e.service_tags.filter(t => t !== "None today").length : 0), 0);
+  const journalStreak = streakDays();
+  const avgMood = avg(state.entries.map(e => e.mood).filter(x => x != null));
+  const principleAverages = principleAvgs(state.entries.slice(0, 30));
+
+  main.innerHTML = '' +
+    '<h1 class="page-title">Telemetry</h1>' +
+    '<div class="page-sub">Patterns over time across all your entries.</div>' +
+
+    '<div class="grid-4">' +
+      stat("Journal streak", journalStreak + (journalStreak === 1 ? " day" : " days"), "consecutive entries") +
+      stat("Clean days (30d)", sober30 + " / " + recent.length, recent.length ? Math.round(sober30/recent.length*100) + "%" : "—") +
+      stat("Service acts (all)", totalService, "tags logged") +
+      stat("Avg mood", avgMood ? avgMood.toFixed(1) + " / 5" : "—", state.entries.length + " entries") +
+    '</div>' +
+
+    '<div class="card">' +
+      '<h2>Daily calendar &mdash; last 70 days</h2>' +
+      '<p class="lede">Each square is a day. Darker green = stronger principles + service. Red-brown = a slip day.</p>' +
+      heatmapHTML(70) +
+      '<div class="heatmap-legend">' +
+        '<span><span class="swatch" style="background:#eee5d4"></span>no entry</span>' +
+        '<span><span class="swatch" style="background:#d6e3d9"></span>light</span>' +
+        '<span><span class="swatch" style="background:#a6c4ad"></span>moderate</span>' +
+        '<span><span class="swatch" style="background:#6a9c79"></span>strong</span>' +
+        '<span><span class="swatch" style="background:#3a7a55"></span>very strong</span>' +
+        '<span><span class="swatch" style="background:#c98a7a"></span>slipped</span>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="card">' +
+      '<h2>Mood, energy &amp; craving &mdash; last 60 days</h2>' +
+      '<canvas id="trendChart" height="120"></canvas>' +
+    '</div>' +
+
+    '<div class="card">' +
+      '<h2>Principles &mdash; average score (last 30 days)</h2>' +
+      '<p class="lede">Which ones are getting attention. Long bars = practised. Short bars = neglected. This is your blind-spot map.</p>' +
+      '<canvas id="principleChart" height="160"></canvas>' +
+    '</div>' +
+
+    '<div class="card">' +
+      '<h2>Service over time</h2>' +
+      '<p class="lede">Acts of service logged per day, last 60 days.</p>' +
+      '<canvas id="serviceChart" height="100"></canvas>' +
+    '</div>';
+
+  drawTrendChart();
+  drawPrincipleChart(principleAverages);
+  drawServiceChart();
+}
+function stat(label, value, note) {
+  return '<div class="stat"><div class="label">' + escapeHTML(label) + '</div>' +
+    '<div class="value">' + escapeHTML(value) + '</div><div class="note">' + escapeHTML(note) + '</div></div>';
+}
+function avg(arr) { if (!arr.length) return null; return arr.reduce((a,b)=>a+b,0) / arr.length; }
+function streakDays() {
+  if (!state.entries.length) return 0;
+  const dates = new Set(state.entries.map(e => e.date.slice(0,10)));
+  const today = new Date(); today.setHours(0,0,0,0);
+  let streak = 0;
+  for (let i = 0; i < 365; i++) {
+    const day = new Date(today); day.setDate(today.getDate() - i);
+    if (dates.has(day.toISOString().slice(0,10))) streak++; else break;
+  }
+  return streak;
+}
+function principleAvgs(entries) {
+  const sums = {}; const counts = {};
+  PRINCIPLES.forEach(p => { sums[p.key] = 0; counts[p.key] = 0; });
+  entries.forEach(e => {
+    if (!e.principles) return;
+    PRINCIPLES.forEach(p => {
+      if (typeof e.principles[p.key] === "number") {
+        sums[p.key] += e.principles[p.key];
+        counts[p.key] += 1;
+      }
+    });
+  });
+  return PRINCIPLES.map(p => ({ key: p.key, name: p.name, avg: counts[p.key] ? sums[p.key]/counts[p.key] : 0, count: counts[p.key] }));
+}
+function heatmapHTML(days) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  // build chronological list of days, ending today
+  const list = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    list.push(d);
+  }
+  // pad the front so first column starts on a Monday
+  const firstDay = list[0].getDay(); // 0=Sun..6=Sat
+  // we want weeks Mon-Sun for compactness; convert: Mon=0..Sun=6
+  const monIdx = (firstDay + 6) % 7;
+  const cells = [];
+  for (let i = 0; i < monIdx; i++) cells.push({ blank: true });
+  list.forEach(d => {
+    const key = d.toISOString().slice(0,10);
+    const e = state.entries.find(x => x.date.slice(0,10) === key);
+    let level = -1; // no entry
+    if (e) {
+      if (!e.sober) level = -2; // slip
+      else {
+        const principles = Object.values(e.principles || {}).filter(v => typeof v === "number");
+        const pAvg = principles.length ? principles.reduce((a,b)=>a+b,0)/principles.length : 0;
+        const serviceCount = (e.service_tags || []).filter(t => t !== "None today").length;
+        const score = pAvg + Math.min(serviceCount * 0.5, 1.5); // 0..4.5
+        if (score < 0.6) level = 0;
+        else if (score < 1.4) level = 1;
+        else if (score < 2.2) level = 2;
+        else if (score < 3.0) level = 3;
+        else level = 4;
+      }
+    }
+    cells.push({ d, level, e });
+  });
+  // render grid column-major (each column = a week)
+  let html = '<div class="heatmap" style="grid-template-columns: repeat(' + Math.ceil(cells.length / 7) + ', 1fr); display: grid; gap: 3px; max-width: 700px">';
+  // we need to render row-major DOM so just lay out as rows of weeks
+  // simpler: render row-major weekdays Mon..Sun with one cell per week column
+  const weeks = Math.ceil(cells.length / 7);
+  let grid = '';
+  for (let row = 0; row < 7; row++) {
+    for (let col = 0; col < weeks; col++) {
+      const i = col * 7 + row;
+      const c = cells[i];
+      if (!c || c.blank || !c.d) { grid += '<div></div>'; continue; }
+      const key = c.d.toISOString().slice(0,10);
+      const cls = c.level === -2 ? "cell relapse" :
+                  c.level === -1 ? "cell" :
+                  c.level === 0 ? "cell" :
+                  c.level === 1 ? "cell l1" :
+                  c.level === 2 ? "cell l2" :
+                  c.level === 3 ? "cell l3" : "cell l4";
+      const tip = key + (c.e ? (c.e.sober ? " · clean" : " · slip") + (c.e.mood ? " · mood " + c.e.mood : "") : " · no entry");
+      grid += '<div class="' + cls + '" data-tip="' + escapeHTML(tip) + '"></div>';
+    }
+  }
+  html = '<div class="heatmap" style="grid-template-columns: repeat(' + weeks + ', 1fr)">' + grid + '</div>';
+  return html;
+}
+
+function drawTrendChart() {
+  const ctx = document.getElementById("trendChart"); if (!ctx) return;
+  const sorted = [...state.entries].sort((a,b)=>a.date.localeCompare(b.date)).slice(-60);
+  if (!sorted.length) { ctx.parentElement.insertAdjacentHTML("beforeend", '<p class="lede" style="text-align:center">No entries yet.</p>'); return; }
+  const labels = sorted.map(e => new Date(e.date).toLocaleDateString(undefined, { month:"short", day:"numeric" }));
+  if (window._tc) window._tc.destroy();
+  window._tc = new Chart(ctx, {
+    type: "line",
+    data: { labels, datasets: [
+      { label: "Mood (1–5)", data: sorted.map(e => e.mood), borderColor: "#3a5a4a", backgroundColor: "rgba(58,90,74,0.08)", tension: 0.3, yAxisID: "y" },
+      { label: "Energy (1–5)", data: sorted.map(e => e.energy), borderColor: "#c8a85a", backgroundColor: "rgba(200,168,90,0.05)", tension: 0.3, yAxisID: "y", borderDash:[4,4] },
+      { label: "Craving (0–10)", data: sorted.map(e => e.craving), borderColor: "#a13e2a", backgroundColor: "rgba(161,62,42,0.08)", tension: 0.3, yAxisID: "y2" }
+    ]},
+    options: { responsive: true, plugins: { legend: { position: "bottom" } },
+      scales: {
+        y: { type: "linear", position: "left", min: 0, max: 5, title: { display: true, text: "Mood / Energy" } },
+        y2: { type: "linear", position: "right", min: 0, max: 10, grid: { drawOnChartArea: false }, title: { display: true, text: "Craving" } }
+      }
+    }
+  });
+}
+function drawPrincipleChart(avgs) {
+  const ctx = document.getElementById("principleChart"); if (!ctx) return;
+  if (!state.entries.length) { ctx.parentElement.insertAdjacentHTML("beforeend", '<p class="lede" style="text-align:center">No entries yet.</p>'); return; }
+  if (window._pc) window._pc.destroy();
+  window._pc = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: avgs.map(a => a.name),
+      datasets: [{ label: "Avg score (last 30d)", data: avgs.map(a => a.avg.toFixed(2)),
+        backgroundColor: avgs.map(a => a.avg < 1 ? "#c98a7a" : a.avg < 2 ? "#c8a85a" : "#4a7a64")
+      }]
+    },
+    options: { indexAxis: "y", responsive: true, plugins: { legend: { display: false } },
+      scales: { x: { min: 0, max: 3, title: { display: true, text: "Score 0–3" } } }
+    }
+  });
+}
+function drawServiceChart() {
+  const ctx = document.getElementById("serviceChart"); if (!ctx) return;
+  const sorted = [...state.entries].sort((a,b)=>a.date.localeCompare(b.date)).slice(-60);
+  if (!sorted.length) return;
+  if (window._sc) window._sc.destroy();
+  window._sc = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: sorted.map(e => new Date(e.date).toLocaleDateString(undefined, { month:"short", day:"numeric" })),
+      datasets: [{ label: "Service tags", data: sorted.map(e => (e.service_tags || []).filter(t => t !== "None today").length),
+        backgroundColor: "#4a7a64" }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+  });
+}
+
+/* ===================== PATTERNS (AI) ===================== */
+function renderPatterns(main) {
+  main.innerHTML = '' +
+    '<h1 class="page-title">Patterns</h1>' +
+    '<div class="page-sub">Let the AI look across your entries and surface what is actually happening — not just what you wrote.</div>' +
+
+    '<div class="card">' +
+      '<h2>Run an analysis</h2>' +
+      '<p class="lede">The more entries you have logged, the sharper this gets. Each button asks a different question.</p>' +
+      '<div class="btn-row">' +
+        '<button class="btn primary" id="b-week">Weekly review (last 7 days)</button>' +
+        '<button class="btn" id="b-month">Monthly patterns (last 30 days)</button>' +
+        '<button class="btn" id="b-blind">Which principles am I avoiding?</button>' +
+        '<button class="btn" id="b-corr">Cross-correlate: what tracks with mood?</button>' +
+        '<button class="btn" id="b-service">Suggest tomorrow\'s service</button>' +
+      '</div>' +
+      '<div id="patterns-out" class="ai-output empty">Click a button to run an analysis.</div>' +
+    '</div>' +
+
+    '<div class="card">' +
+      '<h2>Past analyses</h2>' +
+      (state.ai.length ?
+        state.ai.slice().reverse().map(a =>
+          '<div class="ai-output"><span class="stamp">' + escapeHTML(a.kind) + ' &middot; ' + escapeHTML(new Date(a.at).toLocaleString()) + '</span>' + escapeHTML(a.content) + '</div>'
+        ).join("")
+        : '<div class="ai-output empty">No past analyses yet.</div>') +
+    '</div>';
+
+  document.getElementById("b-week").addEventListener("click", () => runPattern("week"));
+  document.getElementById("b-month").addEventListener("click", () => runPattern("month"));
+  document.getElementById("b-blind").addEventListener("click", () => runPattern("blind"));
+  document.getElementById("b-corr").addEventListener("click", () => runPattern("corr"));
+  document.getElementById("b-service").addEventListener("click", () => runPattern("service"));
+}
+async function runPattern(kind) {
+  if (!state.entries.length) { alert("Log at least one entry first."); return; }
+  const out = document.getElementById("patterns-out");
+  out.classList.remove("empty");
+  out.innerHTML = '<span class="stamp">Working…</span>Looking across your entries.';
+
+  let entries = [...state.entries].sort((a,b)=>b.date.localeCompare(a.date));
+  let instr = "";
+  let kindLabel = "";
+
+  if (kind === "week") {
+    entries = entries.slice(0, 7);
+    kindLabel = "Weekly review";
+    instr = "You are a calm, plain-spoken recovery thinking partner reading the last 7 days of someone's Step 12 diary. " +
+      "In under 220 words: (a) describe the shape of the week in one sentence, (b) name TWO specific patterns you see (with evidence), " +
+      "(c) name the ONE thing they should keep doing, (d) name ONE blind spot. No clichés. No 'journey'. Speak like a person.";
+  } else if (kind === "month") {
+    entries = entries.slice(0, 30);
+    kindLabel = "Monthly patterns";
+    instr = "Read the last 30 days of someone's recovery diary. Identify the THREE strongest patterns across mood, principles, and service. " +
+      "Quote 1–2 short phrases from their own writing as evidence. Under 240 words. Be direct.";
+  } else if (kind === "blind") {
+    entries = entries.slice(0, 30);
+    kindLabel = "Blind spots";
+    instr = "Read these entries. Find the 2–3 spiritual principles that are most consistently neglected (low scores AND not mentioned in free-text). " +
+      "For each, name it, give the evidence, and ask ONE pointed question about why it might be getting skipped. Under 200 words.";
+  } else if (kind === "corr") {
+    entries = entries.slice(0, 60);
+    kindLabel = "What tracks with mood";
+    instr = "Look at the daily entries. Which variables seem to move with mood — service acts, specific principles, sleep/energy, craving, certain themes in their writing? " +
+      "List the 3 strongest correlations you can spot. Be cautious about causation. Under 200 words.";
+  } else if (kind === "service") {
+    entries = entries.slice(0, 14);
+    kindLabel = "Service suggestion";
+    instr = "Based on the last 2 weeks of this person's diary, suggest ONE specific, doable Step-Twelve action they could take tomorrow. " +
+      "Reasoning should be grounded in what they have actually written (gaps, people they mentioned, principles being neglected). " +
+      "Under 100 words. One concrete action. Not a checklist.";
+  }
+  const payload = { entries, principles: PRINCIPLES.map(p => p.name) };
+  const res = await callClaude(instr, payload);
+  out.innerHTML = '<span class="stamp">' + escapeHTML(kindLabel) + ' &middot; ' + new Date().toLocaleString() + '</span>' + escapeHTML(res);
+  state.ai.push({ kind: kindLabel, content: res, at: new Date().toISOString() });
+  saveState();
+}
+
+/* ===================== HISTORY ===================== */
+function renderHistory(main) {
+  main.innerHTML = '' +
+    '<h1 class="page-title">History</h1>' +
+    '<div class="page-sub">' + state.entries.length + ' entries logged. Click any to view; saved entries are read-only here (edit via Today if it is today).</div>' +
+    '<div class="q"><input type="text" id="search" class="search-input" placeholder="Search your entries…" /></div>' +
+    '<div id="history-list"></div>';
+
+  function draw(filter) {
+    const list = document.getElementById("history-list");
+    const f = (filter || "").trim().toLowerCase();
+    const items = state.entries
+      .slice()
+      .sort((a,b)=>b.date.localeCompare(a.date))
+      .filter(e => {
+        if (!f) return true;
+        const blob = [e.service_text, e.fell_short, e.grew, e.saw_struggling, e.tomorrow, e.notes, e.relapse_note].join(" ").toLowerCase();
+        return blob.includes(f);
+      });
+    if (!items.length) { list.innerHTML = '<p class="lede">No entries match.</p>'; return; }
+    list.innerHTML = items.map(e => {
+      const principles = Object.entries(e.principles || {}).filter(([k,v]) => v > 0).sort((a,b)=>b[1]-a[1]).slice(0,4)
+        .map(([k]) => '<span class="chip">' + escapeHTML(PRINCIPLES.find(p => p.key === k).name) + '</span>').join("");
+      return '<div class="entry-card">' +
+        '<div class="head"><span>' + escapeHTML(new Date(e.date).toLocaleDateString()) + ' · ' + (e.sober ? "clean" : "slip") + ' · mood ' + (e.mood ?? "—") + '/5 · craving ' + (e.craving ?? "—") + '/10</span></div>' +
+        (e.service_text ? '<div class="body"><strong>Service:</strong> ' + escapeHTML(e.service_text) + '</div>' : '') +
+        (e.fell_short ? '<div class="body"><strong>Fell short:</strong> ' + escapeHTML(e.fell_short) + '</div>' : '') +
+        (e.grew ? '<div class="body"><strong>Grew:</strong> ' + escapeHTML(e.grew) + '</div>' : '') +
+        (e.saw_struggling ? '<div class="body"><strong>Saw struggling:</strong> ' + escapeHTML(e.saw_struggling) + '</div>' : '') +
+        (e.tomorrow ? '<div class="body"><strong>Tomorrow:</strong> ' + escapeHTML(e.tomorrow) + '</div>' : '') +
+        (principles ? '<div class="principles-mini">' + principles + '</div>' : '') +
+        '</div>';
+    }).join("");
+  }
+  draw("");
+  document.getElementById("search").addEventListener("input", e => draw(e.target.value));
+}
+
+/* ===================== SETTINGS / EXPORT ===================== */
+function renderSettings(main) {
+  main.innerHTML = '' +
+    '<h1 class="page-title">Export &amp; data</h1>' +
+    '<div class="page-sub">Your data lives only in this browser. Back up regularly.</div>' +
+
+    '<div class="card">' +
+      '<h2>Export</h2>' +
+      '<div class="btn-row">' +
+        '<button class="btn primary" id="ex-txt">Download .txt (sponsor-readable)</button>' +
+        '<button class="btn" id="ex-csv">Download .csv (telemetry)</button>' +
+        '<button class="btn" id="ex-json">Download .json (full backup)</button>' +
+      '</div>' +
+      '<p class="lede" style="margin-top:10px">CSV is one row per day — load it into Excel/Sheets to run your own analysis.</p>' +
+    '</div>' +
+
+    '<div class="card">' +
+      '<h2>Import</h2>' +
+      '<p class="lede">Paste a previous .json backup to restore.</p>' +
+      '<textarea id="import-area" style="width:100%;min-height:120px;font-family:monospace;font-size:12px"></textarea>' +
+      '<div class="btn-row" style="margin-top:8px"><button class="btn" id="ex-import">Import</button></div>' +
+    '</div>' +
+
+    '<div class="card">' +
+      '<h2>Danger zone</h2>' +
+      '<div class="btn-row"><button class="btn warn" id="ex-wipe">Wipe all data</button></div>' +
+    '</div>';
+
+  document.getElementById("ex-txt").addEventListener("click", exportTxt);
+  document.getElementById("ex-csv").addEventListener("click", exportCsv);
+  document.getElementById("ex-json").addEventListener("click", exportJson);
+  document.getElementById("ex-import").addEventListener("click", () => {
+    try {
+      const v = JSON.parse(document.getElementById("import-area").value);
+      if (!v.entries) throw new Error("not a valid backup");
+      if (!confirm("Replace all current data with this backup?")) return;
+      state = v; saveState(); alert("Imported."); render();
+    } catch (e) { alert("Could not import: " + e.message); }
+  });
+  document.getElementById("ex-wipe").addEventListener("click", () => {
+    if (!confirm("Wipe ALL diary data? Cannot be undone.")) return;
+    if (!confirm("Really sure?")) return;
+    localStorage.removeItem(STORAGE_KEY);
+    state = defaultState(); saveState(); render();
+  });
+}
+function exportTxt() {
+  let out = "STEP TWELVE DIARY — Export\nGenerated: " + new Date().toLocaleString() + "\n\n";
+  const sorted = [...state.entries].sort((a,b)=>a.date.localeCompare(b.date));
+  sorted.forEach(e => {
+    out += "=== " + new Date(e.date).toLocaleDateString() + " ===\n";
+    out += (e.sober ? "Clean" : "Slip") + " · mood " + (e.mood ?? "—") + "/5 · energy " + (e.energy ?? "—") + "/5 · craving " + (e.craving ?? "—") + "/10\n";
+    if (!e.sober && e.relapse_note) out += "Slip note: " + e.relapse_note + "\n";
+    if (e.service_tags && e.service_tags.length) out += "Service tags: " + e.service_tags.join(", ") + "\n";
+    if (e.service_text) out += "Service: " + e.service_text + "\n";
+    const principles = Object.entries(e.principles || {}).filter(([k,v]) => typeof v === "number")
+      .map(([k,v]) => PRINCIPLES.find(p => p.key === k).name + " " + v).join(", ");
+    if (principles) out += "Principles: " + principles + "\n";
+    if (e.fell_short) out += "Fell short: " + e.fell_short + "\n";
+    if (e.grew) out += "Grew: " + e.grew + "\n";
+    if (e.saw_struggling) out += "Saw struggling: " + e.saw_struggling + "\n";
+    if (e.tomorrow) out += "Tomorrow: " + e.tomorrow + "\n";
+    if (e.notes) out += "Notes: " + e.notes + "\n";
+    out += "\n";
+  });
+  if (state.ai.length) {
+    out += "=== AI ANALYSES ===\n";
+    state.ai.forEach(a => { out += "[" + a.kind + " · " + new Date(a.at).toLocaleString() + "]\n" + a.content + "\n\n"; });
+  }
+  downloadBlob(out, "text/plain", "step12_diary_" + new Date().toISOString().slice(0,10) + ".txt");
+}
+function exportCsv() {
+  const headers = ["date","sober","mood","energy","craving","service_count","service_tags","service_text","fell_short","grew","saw_struggling","tomorrow","notes"]
+    .concat(PRINCIPLES.map(p => "p_" + p.key));
+  const rows = [headers.join(",")];
+  [...state.entries].sort((a,b)=>a.date.localeCompare(b.date)).forEach(e => {
+    const row = [
+      e.date.slice(0,10),
+      e.sober ? "1" : "0",
+      e.mood ?? "",
+      e.energy ?? "",
+      e.craving ?? "",
+      (e.service_tags || []).filter(t => t !== "None today").length,
+      csv((e.service_tags || []).join("|")),
+      csv(e.service_text),
+      csv(e.fell_short),
+      csv(e.grew),
+      csv(e.saw_struggling),
+      csv(e.tomorrow),
+      csv(e.notes)
+    ].concat(PRINCIPLES.map(p => e.principles && typeof e.principles[p.key] === "number" ? e.principles[p.key] : ""));
+    rows.push(row.join(","));
+  });
+  downloadBlob(rows.join("\n"), "text/csv", "step12_diary_telemetry_" + new Date().toISOString().slice(0,10) + ".csv");
+}
+function csv(v) { if (v == null) return ""; const s = String(v).replace(/"/g, '""'); return /[",\n]/.test(s) ? '"' + s + '"' : s; }
+function exportJson() {
+  downloadBlob(JSON.stringify(state, null, 2), "application/json", "step12_diary_backup_" + new Date().toISOString().slice(0,10) + ".json");
+}
+function downloadBlob(content, mime, filename) {
+  const blob = new Blob([content], { type: mime + ";charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ===================== AI ===================== */
+async function callClaude(prompt, dataObj) {
+  if (!window.cowork || typeof window.cowork.askClaude !== "function") {
+    return "(AI is not available in this environment. Your entries are still being saved locally.)";
+  }
+  try {
+    const res = await window.cowork.askClaude(prompt, [JSON.stringify(dataObj)]);
+    return typeof res === "string" ? res : String(res);
+  } catch (e) {
+    return "(AI call failed: " + (e && e.message ? e.message : "unknown") + ")";
+  }
+}
+
+/* ===================== INIT ===================== */
+render();
+</script>
+</body>
+</html>
