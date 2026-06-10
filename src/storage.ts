@@ -1,10 +1,35 @@
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { JournalEntry, StepsProgress, SupportContact } from './types';
 
 // Everything this app stores is sensitive (recovery progress, journal
 // entries, support contacts), so it all goes through SecureStore and is
 // encrypted at rest. Each journal entry lives under its own key to stay
-// well under platform value-size limits.
+// well under platform value-size limits. SecureStore has no web
+// implementation, so the web build falls back to localStorage.
+
+const isWeb = Platform.OS === 'web';
+
+async function getRaw(key: string): Promise<string | null> {
+  if (isWeb) return globalThis.localStorage?.getItem(key) ?? null;
+  return SecureStore.getItemAsync(key);
+}
+
+async function setRaw(key: string, value: string): Promise<void> {
+  if (isWeb) {
+    globalThis.localStorage?.setItem(key, value);
+    return;
+  }
+  await SecureStore.setItemAsync(key, value);
+}
+
+async function deleteRaw(key: string): Promise<void> {
+  if (isWeb) {
+    globalThis.localStorage?.removeItem(key);
+    return;
+  }
+  await SecureStore.deleteItemAsync(key);
+}
 
 const KEYS = {
   sobrietyDate: 'sobriety.date',
@@ -16,7 +41,7 @@ const KEYS = {
 
 async function readJson<T>(key: string, fallback: T): Promise<T> {
   try {
-    const raw = await SecureStore.getItemAsync(key);
+    const raw = await getRaw(key);
     return raw ? (JSON.parse(raw) as T) : fallback;
   } catch {
     return fallback;
@@ -24,17 +49,17 @@ async function readJson<T>(key: string, fallback: T): Promise<T> {
 }
 
 async function writeJson(key: string, value: unknown): Promise<void> {
-  await SecureStore.setItemAsync(key, JSON.stringify(value));
+  await setRaw(key, JSON.stringify(value));
 }
 
 // --- Sobriety date ---
 
 export async function getSobrietyDate(): Promise<string | null> {
-  return SecureStore.getItemAsync(KEYS.sobrietyDate);
+  return getRaw(KEYS.sobrietyDate);
 }
 
 export async function setSobrietyDate(isoDate: string): Promise<void> {
-  await SecureStore.setItemAsync(KEYS.sobrietyDate, isoDate);
+  await setRaw(KEYS.sobrietyDate, isoDate);
 }
 
 // --- Steps progress ---
@@ -74,7 +99,7 @@ export async function deleteJournalEntry(id: string): Promise<void> {
     KEYS.journalIndex,
     ids.filter((existing) => existing !== id),
   );
-  await SecureStore.deleteItemAsync(KEYS.journalEntry(id));
+  await deleteRaw(KEYS.journalEntry(id));
 }
 
 // --- Support contacts ---

@@ -8,6 +8,8 @@ center dot, on the app's deep indigo background. Outputs:
   assets/android-icon-background.png    1024x1024, solid background
   assets/android-icon-monochrome.png    1024x1024, white motif on transparent
   assets/favicon.png                    64x64
+  store/play-icon.png                   512x512 Play Store listing icon
+  store/feature-graphic.png             1024x500 Play Store feature graphic
 """
 import math
 import os
@@ -135,6 +137,62 @@ def main():
     fav = gradient_canvas(fav_size, BG_TOP, BG_BOTTOM)
     draw_motif(fav, fav_size, 1.0, PRIMARY, LIGHT)
     write_png(os.path.join(OUT_DIR, 'favicon.png'), fav_size, fav_size, fav)
+
+    # Play Store listing assets
+    store_dir = os.path.join(os.path.dirname(__file__), '..', 'store')
+    os.makedirs(store_dir, exist_ok=True)
+
+    play_size = 512
+    play = gradient_canvas(play_size, BG_TOP, BG_BOTTOM)
+    blend_dot(play, play_size, play_size / 2, play_size / 2, play_size * 0.40, (32, 30, 88), opacity=0.85)
+    draw_motif(play, play_size, 1.0, PRIMARY, LIGHT)
+    write_png(os.path.join(store_dir, 'play-icon.png'), play_size, play_size, play)
+
+    # Feature graphic 1024x500: motif on the left, glow on the right where
+    # the Play listing overlays the app name
+    fw, fh = 1024, 500
+    feature = []
+    for y in range(fh):
+        t = y / (fh - 1)
+        row_color = (
+            round(BG_TOP[0] + (BG_BOTTOM[0] - BG_TOP[0]) * t),
+            round(BG_TOP[1] + (BG_BOTTOM[1] - BG_TOP[1]) * t),
+            round(BG_TOP[2] + (BG_BOTTOM[2] - BG_TOP[2]) * t),
+            255,
+        )
+        feature.extend([row_color] * fw)
+
+    def blend_dot_rect(cx, cy, r, color, opacity=1.0):
+        feather = 2.0
+        x0, x1 = max(0, int(cx - r - 3)), min(fw - 1, int(cx + r + 3))
+        y0, y1 = max(0, int(cy - r - 3)), min(fh - 1, int(cy + r + 3))
+        for yy in range(y0, y1 + 1):
+            for xx in range(x0, x1 + 1):
+                dist = math.hypot(xx + 0.5 - cx, yy + 0.5 - cy)
+                cov = min(1.0, max(0.0, (r + feather / 2 - dist) / feather))
+                if cov <= 0:
+                    continue
+                a = cov * opacity
+                pr, pg, pb, pa = feature[yy * fw + xx]
+                na = a + (pa / 255) * (1 - a)
+                nr = (color[0] * a + pr * (pa / 255) * (1 - a)) / na
+                ng = (color[1] * a + pg * (pa / 255) * (1 - a)) / na
+                nb = (color[2] * a + pb * (pa / 255) * (1 - a)) / na
+                feature[yy * fw + xx] = (round(nr), round(ng), round(nb), round(na * 255))
+
+    mcx, mcy = 250, 250
+    blend_dot_rect(mcx, mcy, 200, (32, 30, 88), opacity=0.9)
+    ring_r, dot_r = 130, 22
+    for i in range(12):
+        angle = math.radians(i * 30 - 90)
+        dx = mcx + ring_r * math.cos(angle)
+        dy = mcy + ring_r * math.sin(angle)
+        if i == 0:
+            blend_dot_rect(dx, dy, dot_r * 1.45, LIGHT)
+        else:
+            blend_dot_rect(dx, dy, dot_r, PRIMARY, opacity=0.55 + 0.038 * (12 - i))
+    blend_dot_rect(mcx, mcy, dot_r * 1.15, LIGHT)
+    write_png(os.path.join(store_dir, 'feature-graphic.png'), fw, fh, feature)
 
 
 if __name__ == '__main__':
