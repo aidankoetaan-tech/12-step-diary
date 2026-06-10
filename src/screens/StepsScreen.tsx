@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,8 +27,12 @@ export default function StepsScreen() {
 
   const setStatus = async (step: number, status: StepStatus) => {
     const next = { ...progress, [step]: status };
-    setProgress(next);
-    await setStepsProgress(next);
+    try {
+      await setStepsProgress(next);
+      setProgress(next);
+    } catch {
+      Alert.alert('Could not save', 'Your step progress could not be stored. Please try again.');
+    }
   };
 
   const doneCount = TWELVE_STEPS.filter((s) => progress[s.number] === 'done').length;

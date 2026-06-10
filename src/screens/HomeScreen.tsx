@@ -15,23 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius } from '../theme';
 import { reflectionForToday } from '../content';
 import { getSobrietyDate, setSobrietyDate } from '../storage';
+import { daysSinceStoredIsoDate, isValidPastIsoDate, nextMilestone } from '../date';
 import { RootTabParamList } from '../types';
-
-const MILESTONES = [1, 7, 30, 60, 90, 180, 365, 730, 1095];
-
-function daysSince(isoDate: string): number {
-  const [year, month, day] = isoDate.split('-').map(Number);
-  const start = new Date(year, month - 1, day);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  return Math.max(0, Math.round((today.getTime() - start.getTime()) / 86400000));
-}
-
-function nextMilestone(days: number): number {
-  const upcoming = MILESTONES.find((m) => m > days);
-  if (upcoming) return upcoming;
-  return (Math.floor(days / 365) + 1) * 365;
-}
 
 function greeting(): string {
   const hour = new Date().getHours();
@@ -55,20 +40,20 @@ export default function HomeScreen() {
 
   const saveDate = async () => {
     const trimmed = draftDate.trim();
-    const valid =
-      /^\d{4}-\d{2}-\d{2}$/.test(trimmed) &&
-      !Number.isNaN(new Date(trimmed).getTime()) &&
-      new Date(trimmed).getTime() <= Date.now();
-    if (!valid) {
+    if (!isValidPastIsoDate(trimmed)) {
       Alert.alert('Invalid date', 'Please enter a past date as YYYY-MM-DD, e.g. 2025-11-03.');
       return;
     }
-    await setSobrietyDate(trimmed);
-    setSoberDate(trimmed);
-    setEditing(false);
+    try {
+      await setSobrietyDate(trimmed);
+      setSoberDate(trimmed);
+      setEditing(false);
+    } catch {
+      Alert.alert('Could not save', 'Your sobriety date could not be stored. Please try again.');
+    }
   };
 
-  const days = soberDate ? daysSince(soberDate) : null;
+  const days = daysSinceStoredIsoDate(soberDate);
 
   return (
     <ScrollView

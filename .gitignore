@@ -40,3 +40,21 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# IDE
+.idea/
+*.iml
+
+# JetBrains inspection results
+*.xml
+
+# Expo web export artifacts
+/web-build
+/index.html
+
+# Keystore secrets (never commit)
+upload-keystore.jks
+keystore-password.txt
+
+# Android emulator bugreports
+bugreport-*.zip
