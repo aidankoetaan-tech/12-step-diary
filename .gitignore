@@ -40,3 +40,14 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# IDE
+.idea/
+*.iml
+
+# JetBrains inspection results
+*.xml
+
+# Expo web export artifacts
+/web-build
+/index.html
