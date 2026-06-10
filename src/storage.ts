@@ -12,7 +12,7 @@ const isWeb = Platform.OS === 'web';
 
 async function getRaw(key: string): Promise<string | null> {
   if (isWeb) return globalThis.localStorage?.getItem(key) ?? null;
-  return SecureStore.getItemAsync(key);
+  return await SecureStore.getItemAsync(key);
 }
 
 async function setRaw(key: string, value: string): Promise<void> {
@@ -55,7 +55,7 @@ async function writeJson(key: string, value: unknown): Promise<void> {
 // --- Sobriety date ---
 
 export async function getSobrietyDate(): Promise<string | null> {
-  return getRaw(KEYS.sobrietyDate);
+  return await getRaw(KEYS.sobrietyDate);
 }
 
 export async function setSobrietyDate(isoDate: string): Promise<void> {
@@ -65,7 +65,7 @@ export async function setSobrietyDate(isoDate: string): Promise<void> {
 // --- Steps progress ---
 
 export async function getStepsProgress(): Promise<StepsProgress> {
-  return readJson<StepsProgress>(KEYS.stepsProgress, {});
+  return await readJson<StepsProgress>(KEYS.stepsProgress, {});
 }
 
 export async function setStepsProgress(progress: StepsProgress): Promise<void> {
@@ -105,7 +105,7 @@ export async function deleteJournalEntry(id: string): Promise<void> {
 // --- Support contacts ---
 
 export async function getContacts(): Promise<SupportContact[]> {
-  return readJson<SupportContact[]>(KEYS.contacts, []);
+  return await readJson<SupportContact[]>(KEYS.contacts, []);
 }
 
 export async function setContacts(contacts: SupportContact[]): Promise<void> {
