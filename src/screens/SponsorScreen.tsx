@@ -54,8 +54,13 @@ export default function SponsorScreen() {
       ...contacts,
       { id: newId(), name: name.trim(), phone: phone.trim(), relation: relation.trim() || 'Support' },
     ];
-    setContactsState(next);
-    await setContacts(next);
+    try {
+      await setContacts(next);
+      setContactsState(next);
+    } catch {
+      Alert.alert('Could not save', 'This contact could not be stored. Please try again.');
+      return;
+    }
     setName('');
     setPhone('');
     setRelation('Sponsor');
@@ -70,8 +75,12 @@ export default function SponsorScreen() {
         style: 'destructive',
         onPress: async () => {
           const next = contacts.filter((c) => c.id !== contact.id);
-          setContactsState(next);
-          await setContacts(next);
+          try {
+            await setContacts(next);
+            setContactsState(next);
+          } catch {
+            Alert.alert('Could not remove', 'This contact could not be removed. Please try again.');
+          }
         },
       },
     ]);

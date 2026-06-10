@@ -112,6 +112,15 @@ export async function setContacts(contacts: SupportContact[]): Promise<void> {
   await writeJson(KEYS.contacts, contacts);
 }
 
+export async function __resetStorageForTests(): Promise<void> {
+  await deleteRaw(KEYS.sobrietyDate);
+  await deleteRaw(KEYS.stepsProgress);
+  const ids = await readJson<string[]>(KEYS.journalIndex, []);
+  await deleteRaw(KEYS.journalIndex);
+  await Promise.all(ids.map((id) => deleteRaw(KEYS.journalEntry(id))));
+  await deleteRaw(KEYS.contacts);
+}
+
 export function newId(): string {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 }

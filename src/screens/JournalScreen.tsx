@@ -93,6 +93,12 @@ export default function JournalScreen() {
     </View>
   );
 
+  const privacyKicker = Platform.OS === 'web' ? 'PRIVATE ON THIS DEVICE' : 'PRIVATE & ENCRYPTED';
+  const emptyPrivacyText =
+    Platform.OS === 'web'
+      ? 'Your journal stays in this browser on this device. Tap + to write your first entry.'
+      : 'Your journal stays on this device, encrypted. Tap + to write your first entry.';
+
   return (
     <KeyboardAvoidingView
       style={[styles.container, { paddingTop: insets.top + spacing.lg }]}
@@ -100,7 +106,7 @@ export default function JournalScreen() {
     >
       <View style={styles.titleRow}>
         <View>
-          <Text style={styles.kicker}>PRIVATE & ENCRYPTED</Text>
+          <Text style={styles.kicker}>{privacyKicker}</Text>
           <Text style={styles.title}>Journal</Text>
         </View>
         <Pressable style={styles.newButton} onPress={() => setComposing(!composing)}>
@@ -170,9 +176,7 @@ export default function JournalScreen() {
             <View style={styles.empty}>
               <Ionicons name="book-outline" size={36} color={colors.textFaint} />
               <Text style={styles.emptyTitle}>No entries yet</Text>
-              <Text style={styles.emptyBody}>
-                Your journal stays on this device, encrypted. Tap + to write your first entry.
-              </Text>
+              <Text style={styles.emptyBody}>{emptyPrivacyText}</Text>
             </View>
           )
         }

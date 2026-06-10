@@ -51,3 +51,10 @@ yarn-error.*
 # Expo web export artifacts
 /web-build
 /index.html
+
+# Keystore secrets (never commit)
+upload-keystore.jks
+keystore-password.txt
+
+# Android emulator bugreports
+bugreport-*.zip
