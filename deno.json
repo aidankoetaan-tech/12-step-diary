@@ -1,0 +1,5 @@
+{
+  "lint": {
+    "exclude": ["scripts/", "node_modules/", ".git/", "dist/"]
+  }
+}
