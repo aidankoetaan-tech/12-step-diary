@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, FlatList, Pressable, Alert } from 'react-native
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, radius } from '../theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors, gradients, spacing, radius } from '../theme';
 import { TWELVE_STEPS, StepDefinition } from '../content';
 import { getStepsProgress, setStepsProgress } from '../storage';
 import { StepsProgress, StepStatus } from '../types';
@@ -112,7 +113,12 @@ export default function StepsScreen() {
       <Text style={styles.kicker}>THE PROGRAM</Text>
       <Text style={styles.title}>The 12 Steps</Text>
       <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: `${(doneCount / 12) * 100}%` }]} />
+        <LinearGradient
+          colors={gradients.progress}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={[styles.progressFill, { width: `${(doneCount / 12) * 100}%` }]}
+        />
       </View>
       <Text style={styles.progressLabel}>{doneCount} of 12 steps complete</Text>
       <FlatList

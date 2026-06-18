@@ -15,7 +15,22 @@ export const colors = {
   warning: '#F7C86F',
   warningSoft: '#3A3220',
   danger: '#F76F8E',
+  // Warm gold accent for milestones / recovery chips — the medallion
+  // colour of 12-step culture, a deliberate contrast to the cool indigo.
+  accent: '#F4C56B',
+  accentSoft: '#2E2615',
+  accentDim: '#6B5A33',
+  onAccent: '#2A1E00',
 };
+
+// Multi-stop gradients (expo-linear-gradient). Tuples so the colours prop
+// type-checks (it requires at least two stops).
+export const gradients = {
+  hero: ['#322A73', '#191540'],
+  primary: ['#8B7CFF', '#6C5CE7'],
+  gold: ['#F7D488', '#E5A93F'],
+  progress: ['#7C6FF7', '#5DD9A7'],
+} as const;
 
 export const spacing = {
   xs: 4,

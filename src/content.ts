@@ -88,6 +88,41 @@ export const REFLECTIONS: string[] = [
   'Your story isn’t over. This chapter is called recovery.',
 ];
 
+// Recovery milestones ("chips" / medallions). The day thresholds mirror
+// MILESTONES in src/date.ts; this list adds the display metadata used by
+// the milestone strip on the Home screen.
+export interface MilestoneMeta {
+  days: number;
+  label: string;
+  short: string;
+}
+
+export const MILESTONES_META: MilestoneMeta[] = [
+  { days: 1, label: '24 hours', short: '1d' },
+  { days: 7, label: '1 week', short: '1w' },
+  { days: 30, label: '30 days', short: '30d' },
+  { days: 60, label: '60 days', short: '60d' },
+  { days: 90, label: '90 days', short: '90d' },
+  { days: 180, label: '6 months', short: '6mo' },
+  { days: 365, label: '1 year', short: '1yr' },
+  { days: 730, label: '2 years', short: '2yr' },
+  { days: 1095, label: '3 years', short: '3yr' },
+];
+
+export function earnedMilestoneCount(days: number | null): number {
+  if (days === null) return 0;
+  return MILESTONES_META.filter((m) => days >= m.days).length;
+}
+
+// Label for an arbitrary milestone-day count, including the yearly
+// thresholds beyond the fixed list (e.g. 1460 -> "4 years").
+export function milestoneLabel(targetDays: number): string {
+  const known = MILESTONES_META.find((m) => m.days === targetDays);
+  if (known) return known.label;
+  const years = Math.round(targetDays / 365);
+  return `${years} year${years === 1 ? '' : 's'}`;
+}
+
 export const JOURNAL_PROMPTS: string[] = [
   'What am I grateful for today?',
   'What was hard today, and how did I handle it?',

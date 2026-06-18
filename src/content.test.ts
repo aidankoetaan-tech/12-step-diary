@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  earnedMilestoneCount,
   JOURNAL_PROMPTS,
+  milestoneLabel,
+  MILESTONES_META,
   REFLECTIONS,
   reflectionForToday,
   TWELVE_STEPS,
@@ -41,5 +44,27 @@ describe('journal prompts', () => {
     for (const prompt of JOURNAL_PROMPTS) {
       expect(prompt.trim().length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('milestones', () => {
+  it('are ordered by ascending day count', () => {
+    for (let i = 1; i < MILESTONES_META.length; i++) {
+      expect(MILESTONES_META[i].days).toBeGreaterThan(MILESTONES_META[i - 1].days);
+    }
+  });
+
+  it('counts only milestones reached', () => {
+    expect(earnedMilestoneCount(null)).toBe(0);
+    expect(earnedMilestoneCount(0)).toBe(0);
+    expect(earnedMilestoneCount(1)).toBe(1);
+    expect(earnedMilestoneCount(90)).toBe(5);
+    expect(earnedMilestoneCount(5000)).toBe(MILESTONES_META.length);
+  });
+
+  it('labels known thresholds and falls back to whole years', () => {
+    expect(milestoneLabel(7)).toBe('1 week');
+    expect(milestoneLabel(365)).toBe('1 year');
+    expect(milestoneLabel(1460)).toBe('4 years');
   });
 });

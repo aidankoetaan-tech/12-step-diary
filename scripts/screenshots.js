@@ -92,7 +92,7 @@ async function shot(page, name) {
 
   // --- Journal: write two entries ---
   await clickText(page, 'Journal', { last: true });
-  await waitForText(page, 'PRIVATE & ENCRYPTED');
+  await waitForText(page, 'PRIVATE'); // kicker varies by platform (web vs native)
   const entries = [
     {
       prompt: 'What am I grateful for today?',

@@ -21,6 +21,7 @@ BG_BOTTOM = (10, 10, 33)
 BG_FLAT = (13, 13, 43)  # #0D0D2B
 PRIMARY = (124, 111, 247)  # #7C6FF7
 LIGHT = (234, 234, 255)  # #EAEAFF
+GOLD = (244, 197, 107)  # #F4C56B — milestone medallion accent
 WHITE = (255, 255, 255)
 
 OUT_DIR = os.path.join(os.path.dirname(__file__), '..', 'assets')
@@ -115,12 +116,12 @@ def main():
     # Main icon: gradient background + glow + motif
     icon = gradient_canvas(size, BG_TOP, BG_BOTTOM)
     blend_dot(icon, size, size / 2, size / 2, size * 0.40, (32, 30, 88), opacity=0.85)
-    draw_motif(icon, size, 1.0, PRIMARY, LIGHT)
+    draw_motif(icon, size, 1.0, PRIMARY, GOLD)
     write_png(os.path.join(OUT_DIR, 'icon.png'), size, size, icon)
 
     # Adaptive foreground: transparent, scaled into the ~66% safe zone
     fg = flat_canvas(size, (0, 0, 0), 0)
-    draw_motif(fg, size, 0.62, PRIMARY, LIGHT)
+    draw_motif(fg, size, 0.62, PRIMARY, GOLD)
     write_png(os.path.join(OUT_DIR, 'android-icon-foreground.png'), size, size, fg)
 
     # Adaptive background: solid brand color
@@ -135,7 +136,7 @@ def main():
     # Favicon
     fav_size = 64
     fav = gradient_canvas(fav_size, BG_TOP, BG_BOTTOM)
-    draw_motif(fav, fav_size, 1.0, PRIMARY, LIGHT)
+    draw_motif(fav, fav_size, 1.0, PRIMARY, GOLD)
     write_png(os.path.join(OUT_DIR, 'favicon.png'), fav_size, fav_size, fav)
 
     # Play Store listing assets
@@ -145,7 +146,7 @@ def main():
     play_size = 512
     play = gradient_canvas(play_size, BG_TOP, BG_BOTTOM)
     blend_dot(play, play_size, play_size / 2, play_size / 2, play_size * 0.40, (32, 30, 88), opacity=0.85)
-    draw_motif(play, play_size, 1.0, PRIMARY, LIGHT)
+    draw_motif(play, play_size, 1.0, PRIMARY, GOLD)
     write_png(os.path.join(store_dir, 'play-icon.png'), play_size, play_size, play)
 
     # Feature graphic 1024x500: motif on the left, glow on the right where
@@ -188,10 +189,10 @@ def main():
         dx = mcx + ring_r * math.cos(angle)
         dy = mcy + ring_r * math.sin(angle)
         if i == 0:
-            blend_dot_rect(dx, dy, dot_r * 1.45, LIGHT)
+            blend_dot_rect(dx, dy, dot_r * 1.45, GOLD)
         else:
             blend_dot_rect(dx, dy, dot_r, PRIMARY, opacity=0.55 + 0.038 * (12 - i))
-    blend_dot_rect(mcx, mcy, dot_r * 1.15, LIGHT)
+    blend_dot_rect(mcx, mcy, dot_r * 1.15, GOLD)
     write_png(os.path.join(store_dir, 'feature-graphic.png'), fw, fh, feature)
 
 
