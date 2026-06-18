@@ -9,6 +9,8 @@ import StepsScreen from './src/screens/StepsScreen';
 import JournalScreen from './src/screens/JournalScreen';
 import SponsorScreen from './src/screens/SponsorScreen';
 import { RootTabParamList } from './src/types';
+import { DataProvider } from './src/context/DataContext';
+import { EntitlementProvider } from './src/context/EntitlementContext';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
@@ -30,9 +32,11 @@ const RecoveryTheme = {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <NavigationContainer theme={RecoveryTheme}>
-        <StatusBar style="light" />
-        <Tab.Navigator
+      <EntitlementProvider>
+        <DataProvider>
+          <NavigationContainer theme={RecoveryTheme}>
+            <StatusBar style="light" />
+            <Tab.Navigator
           screenOptions={({ route }) => ({
             headerShown: false,
             tabBarStyle: {
@@ -87,8 +91,10 @@ export default function App() {
             component={SponsorScreen}
             options={{ tabBarLabel: 'Sponsor' }}
           />
-        </Tab.Navigator>
-      </NavigationContainer>
+            </Tab.Navigator>
+          </NavigationContainer>
+        </DataProvider>
+      </EntitlementProvider>
     </SafeAreaProvider>
   );
 }
